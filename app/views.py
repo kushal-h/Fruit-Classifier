@@ -1,10 +1,12 @@
 import os
 
+from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render
 
-from app.models import ImagePath
+from app.models import ImagePath, Predictions
 from lables import lable
+
 #importing tensorflow libelary
 
 import tensorflow as tf
@@ -35,21 +37,30 @@ def predict(request):
 
             #Loading the model
             print('model is loding............')
-            model = tf.keras.models.load_model('fruits.h5')
+            model = tf.keras.models.load_model('cat_or_dog.h5')
             print('model is loaded! ')
-            image = Image.load_img(file_path, target_size= (32,32))
+            image = Image.load_img(file_path, target_size= (64,64))
             image = Image.img_to_array(image)
             image = np.expand_dims(image, axis = 0)
 
             #Prediction
 
             result = model.predict(image)
-            print(result)
-            print(np.argmax(result))
+            if result[0][0] == 0:
+                pred = 'cat'
+                messages.info(request, "Its a cat")
+            else:
+                pred = 'dog'
+                messages.info(request, "its a dog")
+
             img_path = ImagePath()
             img_path.path = file_path
+            img_db = Predictions()
+            img_db.image_path = file_path
+            img_db.prediction= pred
+            img_db.save()
+            return render(request, "results.html", {'image_source': img_path})
 
-            return render(request, 'results.html',  {'image_source': img_path})
 
         except Exception as e:
             print('error is', e )
